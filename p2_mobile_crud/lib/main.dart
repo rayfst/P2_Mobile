@@ -18,6 +18,13 @@ void main() async {
   runApp(const MyApp());
 }
 
+enum TaskFilter {
+  prioridadeAlta,
+  prioridadeBaixa,
+  maisRecente,
+  menosRecente,
+}
+
 /// TEMA SKYLINE (blueAccent + lightBlue)
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -73,7 +80,12 @@ class TaskListPage extends StatefulWidget {
 
 class _TaskListPageState extends State<TaskListPage> {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
   List<Task> _tasks = [];
+
+  List<Task> _filteredTasks = [];
+
+  TaskFilter _selectedFilter = TaskFilter.maisRecente;
 
   @override
   void initState() {
@@ -85,7 +97,29 @@ class _TaskListPageState extends State<TaskListPage> {
     final tasks = await _dbHelper.getAllTasks();
     setState(() {
       _tasks = tasks;
+      _applyFilter();
     });
+  }
+
+  void _applyFilter() {
+    List<Task> list = List.from(_tasks);
+
+    switch (_selectedFilter) {
+      case TaskFilter.maisRecente:
+        list.sort((a, b) => b.criadoEm.compareTo(a.criadoEm));
+        break;
+      case TaskFilter.menosRecente:
+        list.sort((a, b) => a.criadoEm.compareTo(b.criadoEm));
+        break;
+      case TaskFilter.prioridadeAlta:
+        list.sort((a, b) => b.prioridade.compareTo(a.prioridade));
+        break;
+      case TaskFilter.prioridadeBaixa:
+        list.sort((a, b) => a.prioridade.compareTo(b.prioridade));
+        break;
+    }
+
+    _filteredTasks = list;
   }
 
   Future<void> _deleteTask(Task task) async {
@@ -136,6 +170,36 @@ class _TaskListPageState extends State<TaskListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tarefas Profissionais'),
+        actions: [
+          PopupMenuButton<TaskFilter>(
+            initialValue: _selectedFilter,
+            icon: const Icon(Icons.filter_list),
+            onSelected: (value) {
+              setState(() {
+                _selectedFilter = value;
+                _applyFilter();
+              });
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: TaskFilter.maisRecente,
+                child: Text('Mais recente'),
+              ),
+              const PopupMenuItem(
+                value: TaskFilter.menosRecente,
+                child: Text('Menos recente'),
+              ),
+              const PopupMenuItem(
+                value: TaskFilter.prioridadeAlta,
+                child: Text('Prioridade alta'),
+              ),
+              const PopupMenuItem(
+                value: TaskFilter.prioridadeBaixa,
+                child: Text('Prioridade baixa'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -145,7 +209,7 @@ class _TaskListPageState extends State<TaskListPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: _tasks.isEmpty
+        child: _filteredTasks.isEmpty
             ? const Center(
                 child: Text(
                   'Nenhuma tarefa cadastrada ainda.',
@@ -153,10 +217,10 @@ class _TaskListPageState extends State<TaskListPage> {
                 ),
               )
             : ListView.builder(
-                itemCount: _tasks.length,
+                itemCount: _filteredTasks.length,
                 itemBuilder: (context, index) {
-                  final task = _tasks[index];
-                  /// FUNÇÃO DE DELETAR
+                  final task = _filteredTasks[index];
+
                   return Dismissible(
                     key: ValueKey(task.id ?? index),
                     direction: DismissDirection.endToStart,
