@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -100,6 +101,25 @@ class _TaskListPageState extends State<TaskListPage> {
       _applyFilter();
     });
   }
+  
+/// DEBUG: imprime todas as tarefas em JSON no console
+  Future<void> _debugPrintAllTasksJson() async {
+    try {
+      final tasks = await _dbHelper.getAllTasks();
+
+      final listMaps = tasks.map((t) => t.toMap()).toList();
+
+      const encoder = JsonEncoder.withIndent('  ');
+      final jsonString = encoder.convert(listMaps);
+
+      debugPrint('===== DEBUG TASKS (JSON) =====');
+      debugPrint(jsonString);
+      debugPrint('===== FIM DEBUG TASKS =====');
+    } catch (e, s) {
+      debugPrint('Erro ao gerar JSON de debug: $e');
+      debugPrint(s.toString());
+    }
+  }
 
   void _applyFilter() {
     List<Task> list = List.from(_tasks);
@@ -171,6 +191,11 @@ class _TaskListPageState extends State<TaskListPage> {
       appBar: AppBar(
         title: const Text('Tarefas Profissionais'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Debug JSON tarefas',
+            onPressed: _debugPrintAllTasksJson,
+          ),
           PopupMenuButton<TaskFilter>(
             initialValue: _selectedFilter,
             icon: const Icon(Icons.filter_list),
@@ -180,20 +205,20 @@ class _TaskListPageState extends State<TaskListPage> {
                 _applyFilter();
               });
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
+            itemBuilder: (context) => const [
+              PopupMenuItem(
                 value: TaskFilter.maisRecente,
                 child: Text('Mais recente'),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: TaskFilter.menosRecente,
                 child: Text('Menos recente'),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: TaskFilter.prioridadeAlta,
                 child: Text('Prioridade alta'),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: TaskFilter.prioridadeBaixa,
                 child: Text('Prioridade baixa'),
               ),
